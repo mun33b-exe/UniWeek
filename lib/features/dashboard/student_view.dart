@@ -1,10 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:lucide_icons/lucide_icons.dart';
 import 'package:provider/provider.dart';
-import 'package:table_calendar/table_calendar.dart';
 import 'package:uni_week/core/services/supabase_service.dart';
 import 'package:uni_week/core/theme.dart';
 import 'package:intl/intl.dart';
+import 'package:uni_week/features/dashboard/student_calendar_sheet.dart';
 
 class StudentView extends StatefulWidget {
   const StudentView({super.key});
@@ -145,74 +145,17 @@ class _StudentViewState extends State<StudentView> {
     );
   }
 
-  void _showCalendar() {
+  Future<void> _showCalendar() async {
+    final supabase = Provider.of<SupabaseService>(context, listen: false);
+    final events = await supabase.getStudentRegistrations();
+
+    if (!mounted) return;
+
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
-      backgroundColor: UniWeekTheme.surface,
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
-      ),
-      builder: (context) => DraggableScrollableSheet(
-        initialChildSize: 0.7,
-        minChildSize: 0.5,
-        maxChildSize: 0.9,
-        expand: false,
-        builder: (context, scrollController) {
-          return SingleChildScrollView(
-            controller: scrollController,
-            child: Padding(
-              padding: const EdgeInsets.all(16),
-              child: Column(
-                children: [
-                  Container(
-                    width: 40,
-                    height: 4,
-                    margin: const EdgeInsets.only(bottom: 24),
-                    decoration: BoxDecoration(
-                      color: Colors.grey[600],
-                      borderRadius: BorderRadius.circular(2),
-                    ),
-                  ),
-                  TableCalendar(
-                    firstDay: DateTime.utc(2024, 1, 1),
-                    lastDay: DateTime.utc(2025, 12, 31),
-                    focusedDay: DateTime.now(),
-                    calendarStyle: const CalendarStyle(
-                      todayDecoration: BoxDecoration(
-                        color: UniWeekTheme.primary,
-                        shape: BoxShape.circle,
-                      ),
-                      selectedDecoration: BoxDecoration(
-                        color: Colors.blue,
-                        shape: BoxShape.circle,
-                      ),
-                      defaultTextStyle: TextStyle(color: Colors.white),
-                      weekendTextStyle: TextStyle(color: Colors.white70),
-                    ),
-                    headerStyle: const HeaderStyle(
-                      formatButtonVisible: false,
-                      titleCentered: true,
-                      titleTextStyle: TextStyle(
-                        color: Colors.white,
-                        fontSize: 18,
-                      ),
-                      leftChevronIcon: Icon(
-                        Icons.chevron_left,
-                        color: Colors.white,
-                      ),
-                      rightChevronIcon: Icon(
-                        Icons.chevron_right,
-                        color: Colors.white,
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          );
-        },
-      ),
+      backgroundColor: Colors.transparent,
+      builder: (context) => StudentCalendarSheet(events: events),
     );
   }
 }
