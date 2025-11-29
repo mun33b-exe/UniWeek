@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:lucide_icons/lucide_icons.dart';
 import 'package:provider/provider.dart';
 import 'package:uni_week/core/services/supabase_service.dart';
+import 'package:uni_week/core/services/notification_service.dart';
 import 'package:uni_week/core/theme.dart';
 import 'package:intl/intl.dart';
 import 'package:uni_week/features/dashboard/student_calendar_sheet.dart';
@@ -213,8 +214,29 @@ class _EventCardState extends State<_EventCard> {
 
     setState(() => _isLoading = true);
     final supabase = Provider.of<SupabaseService>(context, listen: false);
+    final notificationService = NotificationService();
+
     try {
       await supabase.registerForEvent(widget.event['id']);
+
+      // Schedule local reminder for 30 minutes before event
+      final eventDate = DateTime.parse(widget.event['date']);
+      await notificationService.scheduleEventReminder(
+        widget.event['title'],
+        eventDate,
+        widget.event['id'],
+      );
+
+      // Notify event creator (handler)
+      final creatorId = widget.event['created_by'];
+      if (creatorId != null) {
+        await supabase.createNotification(
+          userId: creatorId,
+          title: '🎯 New Registration Request',
+          body: 'A student wants to join "${widget.event['title']}"',
+        );
+      }
+
       if (mounted) {
         setState(() {
           _status = 'pending';

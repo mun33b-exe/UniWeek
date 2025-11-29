@@ -47,6 +47,30 @@ class _EventManageScreenState extends State<EventManageScreen> {
     final supabase = Provider.of<SupabaseService>(context, listen: false);
     try {
       await supabase.updateRegistrationStatus(regId, status);
+
+      // Find the student ID for this registration and send notification
+      final reg = _registrations.firstWhere((r) => r['id'] == regId);
+      final studentId = reg['student_id'];
+
+      if (studentId != null) {
+        String title;
+        String body;
+
+        if (status == 'accepted') {
+          title = '✅ Registration Accepted!';
+          body = 'You\'re in for "${widget.event['title']}"!';
+        } else {
+          title = '❌ Registration Rejected';
+          body = 'Sorry, "${widget.event['title']}" is full.';
+        }
+
+        await supabase.createNotification(
+          userId: studentId,
+          title: title,
+          body: body,
+        );
+      }
+
       await _fetchRegistrations(); // Refresh list
       if (mounted) {
         ScaffoldMessenger.of(

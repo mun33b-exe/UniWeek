@@ -83,7 +83,29 @@ class _HandlerViewState extends State<HandlerView>
   }
 }
 
-class _MyEventsTab extends StatelessWidget {
+class _MyEventsTab extends StatefulWidget {
+  @override
+  State<_MyEventsTab> createState() => _MyEventsTabState();
+}
+
+class _MyEventsTabState extends State<_MyEventsTab>
+    with AutomaticKeepAliveClientMixin {
+  late Stream<List<Map<String, dynamic>>> _eventsStream;
+
+  @override
+  bool get wantKeepAlive => true;
+
+  @override
+  void initState() {
+    super.initState();
+    _initStream();
+  }
+
+  void _initStream() {
+    final supabase = Provider.of<SupabaseService>(context, listen: false);
+    _eventsStream = supabase.getEvents();
+  }
+
   Future<void> _deleteEvent(BuildContext context, String eventId) async {
     final confirm = await showDialog<bool>(
       context: context,
@@ -110,19 +132,19 @@ class _MyEventsTab extends StatelessWidget {
       ),
     );
 
-    if (confirm == true && context.mounted) {
+    if (confirm == true && mounted) {
       try {
         await Provider.of<SupabaseService>(
           context,
           listen: false,
         ).deleteEvent(eventId);
-        if (context.mounted) {
+        if (mounted) {
           ScaffoldMessenger.of(
             context,
           ).showSnackBar(const SnackBar(content: Text('Event deleted')));
         }
       } catch (e) {
-        if (context.mounted) {
+        if (mounted) {
           ScaffoldMessenger.of(
             context,
           ).showSnackBar(SnackBar(content: Text('Error: $e')));
@@ -140,9 +162,9 @@ class _MyEventsTab extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final supabase = Provider.of<SupabaseService>(context, listen: false);
+    super.build(context); // Required for AutomaticKeepAliveClientMixin
     return StreamBuilder<List<Map<String, dynamic>>>(
-      stream: supabase.getEvents(),
+      stream: _eventsStream,
       builder: (context, snapshot) {
         if (snapshot.hasError) {
           return Center(child: Text('Error: ${snapshot.error}'));
@@ -152,20 +174,15 @@ class _MyEventsTab extends StatelessWidget {
         }
 
         final events = snapshot.data!;
-        // Ideally filter by created_by, but for hackathon speed we show all or assume backend filters
-        // Since we didn't implement RLS for "my events" specifically in getEvents, let's just show all for now
-        // or filter client side if we had the user ID.
-        // The requirement says "My Events", let's assume the handler wants to see all events to manage or just theirs.
-        // Given the prompt "Returns Stream of events" was generic, let's show all.
-
         if (events.isEmpty) {
           return const Center(child: Text('No events created yet'));
         }
 
         return RefreshIndicator(
           onRefresh: () async {
-            // Rebuild to refresh stream
-            (context as Element).markNeedsBuild();
+            setState(() {
+              _initStream();
+            });
           },
           color: UniWeekTheme.primary,
           child: ListView.builder(
@@ -173,7 +190,13 @@ class _MyEventsTab extends StatelessWidget {
             itemCount: events.length,
             itemBuilder: (context, index) {
               final event = events[index];
-              final date = DateTime.parse(event['date']);
+              DateTime date;
+              try {
+                date = DateTime.parse(event['date']);
+              } catch (e) {
+                date = DateTime.now(); // Fallback
+              }
+
               return GestureDetector(
                 onTap: () {
                   Navigator.of(context).push(
@@ -193,6 +216,19 @@ class _MyEventsTab extends StatelessWidget {
                           height: 150,
                           width: double.infinity,
                           fit: BoxFit.cover,
+                          errorBuilder: (context, error, stackTrace) {
+                            return Container(
+                              height: 150,
+                              color: Colors.grey[800],
+                              child: const Center(
+                                child: Icon(
+                                  LucideIcons.image,
+                                  size: 48,
+                                  color: Colors.white54,
+                                ),
+                              ),
+                            );
+                          },
                         ),
                       ListTile(
                         title: Text(

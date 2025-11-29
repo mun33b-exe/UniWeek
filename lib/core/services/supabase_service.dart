@@ -263,4 +263,32 @@ class SupabaseService {
       return {'title': event['title'], 'count': stats[event['id']] ?? 0};
     }).toList();
   }
+
+  // Notifications
+  Future<void> createNotification({
+    required String userId,
+    required String title,
+    required String body,
+  }) async {
+    await _client.from('notifications').insert({
+      'user_id': userId,
+      'title': title,
+      'body': body,
+    });
+  }
+
+  Stream<List<Map<String, dynamic>>> listenToNotifications(String userId) {
+    return _client
+        .from('notifications')
+        .stream(primaryKey: ['id'])
+        .eq('user_id', userId)
+        .order('created_at', ascending: false);
+  }
+
+  Future<void> markNotificationAsRead(String notificationId) async {
+    await _client
+        .from('notifications')
+        .update({'read': true})
+        .eq('id', notificationId);
+  }
 }
