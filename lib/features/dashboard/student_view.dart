@@ -127,13 +127,19 @@ class _StudentViewState extends State<StudentView> {
           return const Center(child: Text('No events found'));
         }
 
-        return ListView.builder(
-          padding: const EdgeInsets.all(16),
-          itemCount: filteredEvents.length,
-          itemBuilder: (context, index) {
-            final event = filteredEvents[index];
-            return _EventCard(event: event);
+        return RefreshIndicator(
+          onRefresh: () async {
+            setState(() {});
           },
+          color: UniWeekTheme.primary,
+          child: ListView.builder(
+            padding: const EdgeInsets.all(16),
+            itemCount: filteredEvents.length,
+            itemBuilder: (context, index) {
+              final event = filteredEvents[index];
+              return _EventCard(event: event);
+            },
+          ),
         );
       },
     );
@@ -221,7 +227,7 @@ class _EventCard extends StatefulWidget {
 }
 
 class _EventCardState extends State<_EventCard> {
-  bool _isRegistered = false;
+  String? _status; // null, pending, accepted, rejected
   bool _isLoading = true;
 
   @override
@@ -232,17 +238,17 @@ class _EventCardState extends State<_EventCard> {
 
   Future<void> _checkRegistration() async {
     final supabase = Provider.of<SupabaseService>(context, listen: false);
-    final isReg = await supabase.isRegistered(widget.event['id']);
+    final status = await supabase.getRegistrationStatus(widget.event['id']);
     if (mounted) {
       setState(() {
-        _isRegistered = isReg;
+        _status = status;
         _isLoading = false;
       });
     }
   }
 
   Future<void> _toggleRegistration() async {
-    if (_isRegistered) return; // Already registered
+    if (_status == 'accepted' || _status == 'pending') return;
 
     setState(() => _isLoading = true);
     final supabase = Provider.of<SupabaseService>(context, listen: false);
@@ -250,7 +256,7 @@ class _EventCardState extends State<_EventCard> {
       await supabase.registerForEvent(widget.event['id']);
       if (mounted) {
         setState(() {
-          _isRegistered = true;
+          _status = 'pending';
         });
       }
     } catch (e) {
@@ -357,15 +363,23 @@ class _EventCardState extends State<_EventCard> {
                 SizedBox(
                   width: double.infinity,
                   child: ElevatedButton(
-                    onPressed: _isLoading || _isRegistered
+                    onPressed:
+                        _isLoading ||
+                            (_status == 'accepted' || _status == 'pending')
                         ? null
                         : _toggleRegistration,
                     style: ElevatedButton.styleFrom(
-                      backgroundColor: _isRegistered
+                      backgroundColor: _status == 'accepted'
                           ? Colors.green
+                          : _status == 'rejected'
+                          ? Colors.red
+                          : _status == 'pending'
+                          ? Colors.orange
                           : UniWeekTheme.primary,
-                      disabledBackgroundColor: _isRegistered
+                      disabledBackgroundColor: _status == 'accepted'
                           ? Colors.green.withValues(alpha: 0.5)
+                          : _status == 'pending'
+                          ? Colors.orange.withValues(alpha: 0.5)
                           : null,
                     ),
                     child: _isLoading
@@ -374,7 +388,15 @@ class _EventCardState extends State<_EventCard> {
                             width: 20,
                             child: CircularProgressIndicator(strokeWidth: 2),
                           )
-                        : Text(_isRegistered ? 'Registered' : 'Register'),
+                        : Text(
+                            _status == 'accepted'
+                                ? 'Registered'
+                                : _status == 'pending'
+                                ? 'Request Sent'
+                                : _status == 'rejected'
+                                ? 'Rejected (Try Again)'
+                                : 'Request Registration',
+                          ),
                   ),
                 ),
               ],

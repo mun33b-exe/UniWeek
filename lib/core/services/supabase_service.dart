@@ -116,9 +116,34 @@ class SupabaseService {
     final user = _client.auth.currentUser;
     if (user == null) return;
 
+    // Check if already registered (rejected?)
+    final existing = await _client
+        .from('registrations')
+        .select()
+        .eq('event_id', eventId)
+        .eq('student_id', user.id)
+        .maybeSingle();
+
+    if (existing != null) {
+      if (existing['status'] == 'rejected') {
+        // Re-request
+        await _client
+            .from('registrations')
+            .update({
+              'status': 'pending',
+              'registration_date': DateTime.now().toIso8601String(),
+            })
+            .eq('id', existing['id']);
+        return;
+      }
+      // Already registered or pending
+      return;
+    }
+
     await _client.from('registrations').insert({
       'event_id': eventId,
       'student_id': user.id,
+      'status': 'pending',
     });
   }
 
@@ -126,14 +151,46 @@ class SupabaseService {
     final user = _client.auth.currentUser;
     if (user == null) return false;
 
-    final data = await _client
+    final response = await _client
         .from('registrations')
         .select()
         .eq('event_id', eventId)
         .eq('student_id', user.id)
         .maybeSingle();
 
-    return data != null;
+    return response != null && response['status'] == 'accepted';
+  }
+
+  Future<String?> getRegistrationStatus(String eventId) async {
+    final user = _client.auth.currentUser;
+    if (user == null) return null;
+
+    final response = await _client
+        .from('registrations')
+        .select('status')
+        .eq('event_id', eventId)
+        .eq('student_id', user.id)
+        .maybeSingle();
+
+    return response?['status'] as String?;
+  }
+
+  Future<List<Map<String, dynamic>>> getEventRegistrations(
+    String eventId,
+  ) async {
+    final response = await _client
+        .from('registrations')
+        .select('*, profiles(email)')
+        .eq('event_id', eventId);
+
+    return List<Map<String, dynamic>>.from(response);
+  }
+
+  Future<void> updateRegistrationStatus(String regId, String status) async {
+    await _client
+        .from('registrations')
+        .update({'status': status})
+        .eq('id', regId);
   }
 
   // Analytics

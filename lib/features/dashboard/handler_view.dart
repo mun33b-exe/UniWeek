@@ -6,6 +6,7 @@ import 'package:uni_week/core/services/supabase_service.dart';
 import 'package:uni_week/core/theme.dart';
 import 'package:intl/intl.dart';
 import 'package:uni_week/features/dashboard/create_event_dialog.dart';
+import 'package:uni_week/features/events/event_manage_screen.dart';
 
 class HandlerView extends StatefulWidget {
   const HandlerView({super.key});
@@ -161,60 +162,77 @@ class _MyEventsTab extends StatelessWidget {
           return const Center(child: Text('No events created yet'));
         }
 
-        return ListView.builder(
-          padding: const EdgeInsets.all(16),
-          itemCount: events.length,
-          itemBuilder: (context, index) {
-            final event = events[index];
-            final date = DateTime.parse(event['date']);
-            return Card(
-              margin: const EdgeInsets.only(bottom: 16),
-              clipBehavior: Clip.antiAlias,
-              child: Column(
-                children: [
-                  if (event['image_url'] != null)
-                    Image.network(
-                      event['image_url'],
-                      height: 150,
-                      width: double.infinity,
-                      fit: BoxFit.cover,
-                    ),
-                  ListTile(
-                    title: Text(
-                      event['title'],
-                      style: const TextStyle(
-                        color: Colors.white,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                    subtitle: Text(
-                      '${DateFormat('MMM d, y').format(date)} • ${event['venue']}',
-                      style: TextStyle(color: Colors.grey[400]),
-                    ),
-                    trailing: Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        IconButton(
-                          icon: const Icon(
-                            LucideIcons.edit,
-                            color: UniWeekTheme.primary,
-                          ),
-                          onPressed: () => _editEvent(context, event),
-                        ),
-                        IconButton(
-                          icon: const Icon(
-                            LucideIcons.trash,
-                            color: Colors.red,
-                          ),
-                          onPressed: () => _deleteEvent(context, event['id']),
-                        ),
-                      ],
-                    ),
-                  ),
-                ],
-              ),
-            );
+        return RefreshIndicator(
+          onRefresh: () async {
+            // Rebuild to refresh stream
+            (context as Element).markNeedsBuild();
           },
+          color: UniWeekTheme.primary,
+          child: ListView.builder(
+            padding: const EdgeInsets.all(16),
+            itemCount: events.length,
+            itemBuilder: (context, index) {
+              final event = events[index];
+              final date = DateTime.parse(event['date']);
+              return GestureDetector(
+                onTap: () {
+                  Navigator.of(context).push(
+                    MaterialPageRoute(
+                      builder: (context) => EventManageScreen(event: event),
+                    ),
+                  );
+                },
+                child: Card(
+                  margin: const EdgeInsets.only(bottom: 16),
+                  clipBehavior: Clip.antiAlias,
+                  child: Column(
+                    children: [
+                      if (event['image_url'] != null)
+                        Image.network(
+                          event['image_url'],
+                          height: 150,
+                          width: double.infinity,
+                          fit: BoxFit.cover,
+                        ),
+                      ListTile(
+                        title: Text(
+                          event['title'],
+                          style: const TextStyle(
+                            color: Colors.white,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                        subtitle: Text(
+                          '${DateFormat('MMM d, y').format(date)} • ${event['venue']}',
+                          style: TextStyle(color: Colors.grey[400]),
+                        ),
+                        trailing: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            IconButton(
+                              icon: const Icon(
+                                LucideIcons.edit,
+                                color: UniWeekTheme.primary,
+                              ),
+                              onPressed: () => _editEvent(context, event),
+                            ),
+                            IconButton(
+                              icon: const Icon(
+                                LucideIcons.trash,
+                                color: Colors.red,
+                              ),
+                              onPressed: () =>
+                                  _deleteEvent(context, event['id']),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              );
+            },
+          ),
         );
       },
     );
