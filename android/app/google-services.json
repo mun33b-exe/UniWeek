@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "891171695332",
+    "project_id": "uniweek-ba04e",
+    "storage_bucket": "uniweek-ba04e.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:891171695332:android:de720961805b6b1b8edaf1",
+        "android_client_info": {
+          "package_name": "com.example.uni_week"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyAdSA9bWXg5DO2rk_29CDWuRe36EHNb9k8"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
