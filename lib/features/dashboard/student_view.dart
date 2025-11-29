@@ -2,10 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:lucide_icons/lucide_icons.dart';
 import 'package:provider/provider.dart';
 import 'package:uni_week/core/services/supabase_service.dart';
-import 'package:uni_week/core/services/notification_service.dart';
 import 'package:uni_week/core/theme.dart';
-import 'package:intl/intl.dart';
-import 'package:uni_week/features/dashboard/student_calendar_sheet.dart';
+import 'package:uni_week/features/dashboard/event_card.dart';
 
 class StudentView extends StatefulWidget {
   final String? filterStatus; // 'accepted', 'pending', or null for all
@@ -19,6 +17,14 @@ class StudentView extends StatefulWidget {
 class _StudentViewState extends State<StudentView> {
   String _selectedFilter = 'All';
   final List<String> _filters = ['All', 'ACM', 'CLS', 'CSS'];
+  final TextEditingController _searchController = TextEditingController();
+  String _searchQuery = '';
+
+  @override
+  void dispose() {
+    _searchController.dispose();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -48,16 +54,61 @@ class _StudentViewState extends State<StudentView> {
       ),
       body: Column(
         children: [
+          _buildSearchBar(),
           _buildFilterChips(),
           Expanded(child: _buildEventList()),
         ],
       ),
-      floatingActionButton: FloatingActionButton.extended(
-        onPressed: _showCalendar,
-        label: const Text('My Calendar'),
-        icon: const Icon(LucideIcons.calendar),
-        backgroundColor: UniWeekTheme.primary,
-        foregroundColor: Colors.black,
+      floatingActionButton: null,
+    );
+  }
+
+  Widget _buildSearchBar() {
+    return Container(
+      margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+      decoration: BoxDecoration(
+        color: Theme.of(context).cardColor,
+        borderRadius: BorderRadius.circular(12),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.05),
+            blurRadius: 10,
+            offset: const Offset(0, 4),
+          ),
+        ],
+      ),
+      child: TextField(
+        controller: _searchController,
+        decoration: InputDecoration(
+          hintText: 'Find events (e.g. Coding)...',
+          prefixIcon: Icon(
+            LucideIcons.search,
+            color: Theme.of(context).hintColor,
+          ),
+          suffixIcon: _searchQuery.isNotEmpty
+              ? IconButton(
+                  icon: const Icon(Icons.clear),
+                  onPressed: () {
+                    _searchController.clear();
+                    setState(() {
+                      _searchQuery = '';
+                    });
+                  },
+                )
+              : null,
+          filled: true,
+          fillColor: Colors.transparent,
+          border: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(12),
+            borderSide: BorderSide.none,
+          ),
+          contentPadding: const EdgeInsets.symmetric(horizontal: 16),
+        ),
+        onChanged: (value) {
+          setState(() {
+            _searchQuery = value;
+          });
+        },
       ),
     );
   }
@@ -65,7 +116,7 @@ class _StudentViewState extends State<StudentView> {
   Widget _buildFilterChips() {
     return SingleChildScrollView(
       scrollDirection: Axis.horizontal,
-      padding: const EdgeInsets.all(16),
+      padding: const EdgeInsets.symmetric(horizontal: 16),
       child: Row(
         children: _filters.map((filter) {
           final isSelected = _selectedFilter == filter;
@@ -94,14 +145,14 @@ class _StudentViewState extends State<StudentView> {
                   setState(() => _selectedFilter = filter);
                 }
               },
-              selectedColor: chipColor.withValues(alpha: 0.8),
+              selectedColor: chipColor.withOpacity(0.8),
               backgroundColor: Theme.of(context).cardColor,
               labelStyle: TextStyle(
                 color: isSelected
                     ? Colors.white
                     : Theme.of(
                         context,
-                      ).colorScheme.onSurface.withValues(alpha: 0.7),
+                      ).colorScheme.onSurface.withOpacity(0.7),
                 fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
               ),
             ),
@@ -142,6 +193,21 @@ class _StudentViewState extends State<StudentView> {
                   .where((e) => e['society_type'] == _selectedFilter)
                   .toList();
 
+        // Filter by Search Query
+        if (_searchQuery.isNotEmpty) {
+          final query = _searchQuery.toLowerCase();
+          filteredEvents = filteredEvents.where((e) {
+            final title = (e['title'] ?? '').toString().toLowerCase();
+            final description = (e['description'] ?? '')
+                .toString()
+                .toLowerCase();
+            final venue = (e['venue'] ?? '').toString().toLowerCase();
+            return title.contains(query) ||
+                description.contains(query) ||
+                venue.contains(query);
+          }).toList();
+        }
+
         if (filteredEvents.isEmpty) {
           return const Center(child: Text('No events found'));
         }
@@ -152,336 +218,15 @@ class _StudentViewState extends State<StudentView> {
           },
           color: UniWeekTheme.primary,
           child: ListView.builder(
-            padding: const EdgeInsets.all(16),
+            padding: const EdgeInsets.fromLTRB(16, 16, 16, 100),
             itemCount: filteredEvents.length,
             itemBuilder: (context, index) {
               final event = filteredEvents[index];
-              return _EventCard(event: event);
+              return EventCard(event: event, isOwner: false);
             },
           ),
         );
       },
-    );
-  }
-
-  Future<void> _showCalendar() async {
-    final supabase = Provider.of<SupabaseService>(context, listen: false);
-    final events = await supabase.getStudentRegistrations();
-
-    if (!mounted) return;
-
-    showModalBottomSheet(
-      context: context,
-      isScrollControlled: true,
-      backgroundColor: Colors.transparent,
-      builder: (context) => StudentCalendarSheet(events: events),
-    );
-  }
-}
-
-class _EventCard extends StatefulWidget {
-  final Map<String, dynamic> event;
-
-  const _EventCard({required this.event});
-
-  @override
-  State<_EventCard> createState() => _EventCardState();
-}
-
-class _EventCardState extends State<_EventCard> {
-  String? _status; // null, pending, accepted, rejected
-  bool _isLoading = true;
-
-  @override
-  void initState() {
-    super.initState();
-    _checkRegistration();
-  }
-
-  Future<void> _checkRegistration() async {
-    final supabase = Provider.of<SupabaseService>(context, listen: false);
-    final status = await supabase.getRegistrationStatus(widget.event['id']);
-    if (mounted) {
-      setState(() {
-        _status = status;
-        _isLoading = false;
-      });
-    }
-  }
-
-  Future<void> _toggleRegistration() async {
-    if (_status == 'accepted' || _status == 'pending') return;
-
-    setState(() => _isLoading = true);
-    final supabase = Provider.of<SupabaseService>(context, listen: false);
-    final notificationService = NotificationService();
-
-    try {
-      await supabase.registerForEvent(widget.event['id']);
-
-      // Schedule local reminder for 30 minutes before event
-      final eventDate = DateTime.parse(widget.event['date']);
-      await notificationService.scheduleEventReminder(
-        widget.event['title'],
-        eventDate,
-        widget.event['id'],
-      );
-
-      // Notify event creator (handler)
-      final creatorId = widget.event['created_by'];
-      if (creatorId != null) {
-        await supabase.createNotification(
-          userId: creatorId,
-          title: '🎯 New Registration Request',
-          body: 'A student wants to join "${widget.event['title']}"',
-        );
-      }
-
-      if (mounted) {
-        setState(() {
-          _status = 'pending';
-        });
-      }
-    } catch (e) {
-      if (mounted) {
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(SnackBar(content: Text('Error: $e')));
-      }
-    } finally {
-      if (mounted) {
-        setState(() => _isLoading = false);
-      }
-    }
-  }
-
-  Future<void> _withdrawRegistration() async {
-    setState(() => _isLoading = true);
-    final supabase = Provider.of<SupabaseService>(context, listen: false);
-    try {
-      await supabase.withdrawRegistration(widget.event['id']);
-      if (mounted) {
-        setState(() {
-          _status = null;
-        });
-      }
-    } catch (e) {
-      if (mounted) {
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(SnackBar(content: Text('Error: $e')));
-      }
-    } finally {
-      if (mounted) {
-        setState(() => _isLoading = false);
-      }
-    }
-  }
-
-  Future<void> _confirmWithdraw() async {
-    final confirm = await showDialog<bool>(
-      context: context,
-      builder: (context) => AlertDialog(
-        backgroundColor: Theme.of(context).cardColor,
-        title: const Text(
-          'Withdraw Registration?',
-          style: TextStyle(color: Colors.white),
-        ),
-        content: const Text(
-          'Are you sure you want to withdraw from this event?',
-          style: TextStyle(color: Colors.white70),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context, false),
-            child: const Text('Cancel'),
-          ),
-          TextButton(
-            onPressed: () => Navigator.pop(context, true),
-            child: const Text('Withdraw', style: TextStyle(color: Colors.red)),
-          ),
-        ],
-      ),
-    );
-
-    if (confirm == true) {
-      _withdrawRegistration();
-    }
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    final date = DateTime.parse(widget.event['date']);
-    final formattedDate = DateFormat('MMM d, y • h:mm a').format(date);
-    final society = widget.event['society_type'];
-
-    Color badgeColor;
-    switch (society) {
-      case 'ACM':
-        badgeColor = Colors.blue;
-        break;
-      case 'CLS':
-        badgeColor = Colors.pink;
-        break;
-      case 'CSS':
-        badgeColor = Colors.green;
-        break;
-      default:
-        badgeColor = Colors.grey;
-    }
-
-    return Card(
-      margin: const EdgeInsets.only(bottom: 16),
-      clipBehavior: Clip.antiAlias,
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          if (widget.event['image_url'] != null)
-            Image.network(
-              widget.event['image_url'],
-              height: 150,
-              width: double.infinity,
-              fit: BoxFit.cover,
-            ),
-          Padding(
-            padding: const EdgeInsets.all(16),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    Container(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 8,
-                        vertical: 4,
-                      ),
-                      decoration: BoxDecoration(
-                        color: badgeColor.withValues(alpha: 0.2),
-                        borderRadius: BorderRadius.circular(8),
-                        border: Border.all(color: badgeColor),
-                      ),
-                      child: Text(
-                        society,
-                        style: TextStyle(
-                          color: badgeColor,
-                          fontWeight: FontWeight.bold,
-                          fontSize: 12,
-                        ),
-                      ),
-                    ),
-                    Text(
-                      formattedDate,
-                      style: TextStyle(
-                        color: Theme.of(
-                          context,
-                        ).colorScheme.onSurface.withValues(alpha: 0.6),
-                        fontSize: 12,
-                      ),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 12),
-                Text(
-                  widget.event['title'],
-                  style: TextStyle(
-                    fontSize: 18,
-                    fontWeight: FontWeight.bold,
-                    color: Theme.of(context).colorScheme.onSurface,
-                  ),
-                ),
-                const SizedBox(height: 8),
-                Row(
-                  children: [
-                    Icon(
-                      LucideIcons.mapPin,
-                      size: 16,
-                      color: Theme.of(
-                        context,
-                      ).colorScheme.onSurface.withValues(alpha: 0.6),
-                    ),
-                    const SizedBox(width: 4),
-                    Text(
-                      widget.event['venue'],
-                      style: TextStyle(
-                        color: Theme.of(
-                          context,
-                        ).colorScheme.onSurface.withValues(alpha: 0.6),
-                      ),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 16),
-                SizedBox(
-                  width: double.infinity,
-                  child: ElevatedButton(
-                    onPressed: _isLoading
-                        ? null
-                        : _status == null
-                        ? _toggleRegistration
-                        : _status == 'rejected'
-                        ? _toggleRegistration // Retry
-                        : _status == 'pending'
-                        ? _withdrawRegistration // Cancel Request
-                        : _confirmWithdraw, // Withdraw Accepted
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: _status == 'accepted'
-                          ? Colors.transparent
-                          : _status == 'rejected'
-                          ? Colors.red
-                          : _status == 'pending'
-                          ? Colors.transparent
-                          : UniWeekTheme.primary,
-                      side: _status == 'accepted' || _status == 'pending'
-                          ? const BorderSide(color: Colors.red)
-                          : null,
-                      disabledBackgroundColor: Colors.grey.withValues(
-                        alpha: 0.3,
-                      ),
-                    ),
-                    child: _isLoading
-                        ? const SizedBox(
-                            height: 20,
-                            width: 20,
-                            child: CircularProgressIndicator(strokeWidth: 2),
-                          )
-                        : Row(
-                            mainAxisAlignment: MainAxisAlignment.center,
-                            children: [
-                              if (_status == 'pending' || _status == 'accepted')
-                                const Padding(
-                                  padding: EdgeInsets.only(right: 8),
-                                  child: Icon(
-                                    LucideIcons.trash2,
-                                    size: 16,
-                                    color: Colors.red,
-                                  ),
-                                ),
-                              Text(
-                                _status == 'accepted'
-                                    ? 'Withdraw / Cancel'
-                                    : _status == 'pending'
-                                    ? 'Withdraw Request'
-                                    : _status == 'rejected'
-                                    ? 'Rejected (Tap to Retry)'
-                                    : 'Register',
-                                style: TextStyle(
-                                  color:
-                                      _status == 'accepted' ||
-                                          _status == 'pending'
-                                      ? Colors.red
-                                      : Colors.white,
-                                ),
-                              ),
-                            ],
-                          ),
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ],
-      ),
     );
   }
 }

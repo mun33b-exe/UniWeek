@@ -3,6 +3,7 @@ import 'package:lucide_icons/lucide_icons.dart';
 import 'package:uni_week/core/theme.dart';
 import 'package:uni_week/features/dashboard/student_view.dart';
 import 'package:uni_week/features/settings/settings_screen.dart';
+import 'package:uni_week/features/dashboard/student_calendar_tab.dart';
 
 class StudentDashboard extends StatefulWidget {
   const StudentDashboard({super.key});
@@ -16,7 +17,7 @@ class _StudentDashboardState extends State<StudentDashboard> {
 
   final List<Widget> _screens = [
     const StudentView(), // Home (All Events)
-    const StudentView(filterStatus: 'accepted'), // Registered
+    const StudentCalendarTab(), // Calendar
     const StudentView(filterStatus: 'pending'), // Requested
     const SettingsScreen(), // Settings
   ];
@@ -33,12 +34,12 @@ class _StudentDashboardState extends State<StudentDashboard> {
           });
         },
         backgroundColor: Theme.of(context).cardColor,
-        indicatorColor: UniWeekTheme.primary.withValues(alpha: 0.2),
+        indicatorColor: UniWeekTheme.primary.withOpacity(0.2),
         destinations: const [
           NavigationDestination(icon: Icon(LucideIcons.home), label: 'Home'),
           NavigationDestination(
-            icon: Icon(LucideIcons.calendarCheck),
-            label: 'Registered',
+            icon: Icon(LucideIcons.calendar),
+            label: 'Calendar',
           ),
           NavigationDestination(
             icon: Icon(LucideIcons.clock),

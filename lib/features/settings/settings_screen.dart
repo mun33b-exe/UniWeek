@@ -36,8 +36,6 @@ class _SettingsScreenState extends State<SettingsScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
-
     return Scaffold(
       appBar: AppBar(
         title: const Text('Settings'),
@@ -69,24 +67,31 @@ class _SettingsScreenState extends State<SettingsScreen> {
                       color: Theme.of(context).dividerColor.withOpacity(0.1),
                     ),
                   ),
-                  child: SwitchListTile(
-                    title: Text(
-                      'Dark Mode',
-                      style: TextStyle(
-                        color: Theme.of(context).colorScheme.onSurface,
-                        fontWeight: FontWeight.w600,
-                      ),
-                    ),
-                    secondary: Icon(
-                      LucideIcons.moon,
-                      color: Theme.of(context).colorScheme.onSurface,
-                    ),
-                    value: isDark,
-                    onChanged: (value) {
-                      Provider.of<ThemeProvider>(
-                        context,
-                        listen: false,
-                      ).toggleTheme(value);
+                  child: Consumer<ThemeProvider>(
+                    builder: (context, themeProvider, child) {
+                      final isDark =
+                          themeProvider.themeMode == ThemeMode.dark ||
+                          (themeProvider.themeMode == ThemeMode.system &&
+                              MediaQuery.of(context).platformBrightness ==
+                                  Brightness.dark);
+
+                      return SwitchListTile(
+                        title: Text(
+                          'Dark Mode',
+                          style: TextStyle(
+                            color: Theme.of(context).colorScheme.onSurface,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                        secondary: Icon(
+                          LucideIcons.moon,
+                          color: Theme.of(context).colorScheme.onSurface,
+                        ),
+                        value: isDark,
+                        onChanged: (value) {
+                          themeProvider.toggleTheme(value);
+                        },
+                      );
                     },
                   ),
                 ),
