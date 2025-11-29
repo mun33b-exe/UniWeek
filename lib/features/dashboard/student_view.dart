@@ -7,7 +7,9 @@ import 'package:intl/intl.dart';
 import 'package:uni_week/features/dashboard/student_calendar_sheet.dart';
 
 class StudentView extends StatefulWidget {
-  const StudentView({super.key});
+  final String? filterStatus; // 'accepted', 'pending', or null for all
+
+  const StudentView({super.key, this.filterStatus});
 
   @override
   State<StudentView> createState() => _StudentViewState();
@@ -110,8 +112,18 @@ class _StudentViewState extends State<StudentView> {
 
   Widget _buildEventList() {
     final supabase = Provider.of<SupabaseService>(context, listen: false);
+    Stream<List<Map<String, dynamic>>> stream;
+
+    if (widget.filterStatus != null) {
+      stream = Stream.fromFuture(
+        supabase.getStudentRegistrationsByStatus(widget.filterStatus!),
+      );
+    } else {
+      stream = supabase.getEvents();
+    }
+
     return StreamBuilder<List<Map<String, dynamic>>>(
-      stream: supabase.getEvents(),
+      stream: stream,
       builder: (context, snapshot) {
         if (snapshot.hasError) {
           return Center(child: Text('Error: ${snapshot.error}'));
@@ -120,8 +132,10 @@ class _StudentViewState extends State<StudentView> {
           return const Center(child: CircularProgressIndicator());
         }
 
-        final events = snapshot.data!;
-        final filteredEvents = _selectedFilter == 'All'
+        var events = snapshot.data!;
+
+        // Filter by Society
+        var filteredEvents = _selectedFilter == 'All'
             ? events
             : events
                   .where((e) => e['society_type'] == _selectedFilter)

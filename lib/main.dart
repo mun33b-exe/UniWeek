@@ -3,6 +3,7 @@ import 'package:provider/provider.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:uni_week/core/services/supabase_service.dart';
 import 'package:uni_week/core/theme.dart';
+import 'package:uni_week/core/theme_provider.dart';
 import 'package:uni_week/features/auth/login_screen.dart';
 import 'package:uni_week/features/dashboard/dashboard_screen.dart';
 
@@ -24,14 +25,21 @@ class UniWeekApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return MultiProvider(
-      providers: [Provider<SupabaseService>(create: (_) => SupabaseService())],
-      child: MaterialApp(
-        title: 'UniWeek',
-        theme: UniWeekTheme.light,
-        darkTheme: UniWeekTheme.dark,
-        themeMode: ThemeMode.system,
-        debugShowCheckedModeBanner: false,
-        home: const AuthWrapper(),
+      providers: [
+        Provider<SupabaseService>(create: (_) => SupabaseService()),
+        ChangeNotifierProvider(create: (_) => ThemeProvider()),
+      ],
+      child: Consumer<ThemeProvider>(
+        builder: (context, themeProvider, _) {
+          return MaterialApp(
+            title: 'UniWeek',
+            theme: UniWeekTheme.light,
+            darkTheme: UniWeekTheme.dark,
+            themeMode: themeProvider.themeMode,
+            debugShowCheckedModeBanner: false,
+            home: const AuthWrapper(),
+          );
+        },
       ),
     );
   }

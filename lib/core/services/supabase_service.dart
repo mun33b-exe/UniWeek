@@ -198,6 +198,26 @@ class SupabaseService {
 
     // Extract events from the response
     return List<Map<String, dynamic>>.from(
+      response
+          .where((reg) => reg['events'] != null)
+          .map((reg) => reg['events'] as Map<String, dynamic>),
+    );
+  }
+
+  Future<List<Map<String, dynamic>>> getStudentRegistrationsByStatus(
+    String status,
+  ) async {
+    final user = _client.auth.currentUser;
+    if (user == null) return [];
+
+    final response = await _client
+        .from('registrations')
+        .select('*, events(*)')
+        .eq('student_id', user.id)
+        .eq('status', status);
+
+    // Extract events from the response
+    return List<Map<String, dynamic>>.from(
       response.map((reg) => reg['events'] as Map<String, dynamic>),
     );
   }

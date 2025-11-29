@@ -197,14 +197,18 @@ class _MyEventsTab extends StatelessWidget {
                       ListTile(
                         title: Text(
                           event['title'],
-                          style: const TextStyle(
-                            color: Colors.white,
+                          style: TextStyle(
+                            color: Theme.of(context).colorScheme.onSurface,
                             fontWeight: FontWeight.bold,
                           ),
                         ),
                         subtitle: Text(
                           '${DateFormat('MMM d, y').format(date)} • ${event['venue']}',
-                          style: TextStyle(color: Colors.grey[400]),
+                          style: TextStyle(
+                            color: Theme.of(
+                              context,
+                            ).colorScheme.onSurface.withValues(alpha: 0.6),
+                          ),
                         ),
                         trailing: Row(
                           mainAxisSize: MainAxisSize.min,
@@ -317,8 +321,8 @@ class _AnalyticsTabState extends State<_AnalyticsTab> {
                               _stats[value.toInt()]['title']
                                   .toString()
                                   .substring(0, 3), // Truncate for space
-                              style: const TextStyle(
-                                color: Colors.white,
+                              style: TextStyle(
+                                color: Theme.of(context).colorScheme.onSurface,
                                 fontSize: 10,
                               ),
                             ),
@@ -335,8 +339,10 @@ class _AnalyticsTabState extends State<_AnalyticsTab> {
                       getTitlesWidget: (value, meta) {
                         return Text(
                           value.toInt().toString(),
-                          style: const TextStyle(
-                            color: Colors.grey,
+                          style: TextStyle(
+                            color: Theme.of(
+                              context,
+                            ).colorScheme.onSurface.withValues(alpha: 0.6),
                             fontSize: 10,
                           ),
                         );
