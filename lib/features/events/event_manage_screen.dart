@@ -67,7 +67,7 @@ class _EventManageScreenState extends State<EventManageScreen> {
     return Scaffold(
       appBar: AppBar(
         title: const Text('Manage Event'),
-        backgroundColor: UniWeekTheme.background,
+        backgroundColor: Theme.of(context).scaffoldBackgroundColor,
         elevation: 0,
       ),
       body: Column(
@@ -99,7 +99,7 @@ class _EventManageScreenState extends State<EventManageScreen> {
   Widget _buildHeader() {
     return Container(
       padding: const EdgeInsets.all(16),
-      color: UniWeekTheme.surface,
+      color: Theme.of(context).cardColor,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [

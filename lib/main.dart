@@ -27,7 +27,9 @@ class UniWeekApp extends StatelessWidget {
       providers: [Provider<SupabaseService>(create: (_) => SupabaseService())],
       child: MaterialApp(
         title: 'UniWeek',
-        theme: UniWeekTheme.themeData,
+        theme: UniWeekTheme.light,
+        darkTheme: UniWeekTheme.dark,
+        themeMode: ThemeMode.system,
         debugShowCheckedModeBanner: false,
         home: const AuthWrapper(),
       ),

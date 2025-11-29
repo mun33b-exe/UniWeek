@@ -22,7 +22,7 @@ class _StudentViewState extends State<StudentView> {
     return Scaffold(
       appBar: AppBar(
         title: const Text('UniWeek Events'),
-        backgroundColor: UniWeekTheme.background,
+        backgroundColor: Theme.of(context).scaffoldBackgroundColor,
         elevation: 0,
         actions: [
           IconButton(
@@ -92,9 +92,13 @@ class _StudentViewState extends State<StudentView> {
                 }
               },
               selectedColor: chipColor.withValues(alpha: 0.8),
-              backgroundColor: UniWeekTheme.surface,
+              backgroundColor: Theme.of(context).cardColor,
               labelStyle: TextStyle(
-                color: isSelected ? Colors.white : Colors.white70,
+                color: isSelected
+                    ? Colors.white
+                    : Theme.of(
+                        context,
+                      ).colorScheme.onSurface.withValues(alpha: 0.7),
                 fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
               ),
             ),
@@ -242,7 +246,7 @@ class _EventCardState extends State<_EventCard> {
     final confirm = await showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
-        backgroundColor: UniWeekTheme.surface,
+        backgroundColor: Theme.of(context).cardColor,
         title: const Text(
           'Withdraw Registration?',
           style: TextStyle(color: Colors.white),
@@ -332,27 +336,42 @@ class _EventCardState extends State<_EventCard> {
                     ),
                     Text(
                       formattedDate,
-                      style: TextStyle(color: Colors.grey[400], fontSize: 12),
+                      style: TextStyle(
+                        color: Theme.of(
+                          context,
+                        ).colorScheme.onSurface.withValues(alpha: 0.6),
+                        fontSize: 12,
+                      ),
                     ),
                   ],
                 ),
                 const SizedBox(height: 12),
                 Text(
                   widget.event['title'],
-                  style: const TextStyle(
+                  style: TextStyle(
                     fontSize: 18,
                     fontWeight: FontWeight.bold,
-                    color: Colors.white,
+                    color: Theme.of(context).colorScheme.onSurface,
                   ),
                 ),
                 const SizedBox(height: 8),
                 Row(
                   children: [
-                    Icon(LucideIcons.mapPin, size: 16, color: Colors.grey[400]),
+                    Icon(
+                      LucideIcons.mapPin,
+                      size: 16,
+                      color: Theme.of(
+                        context,
+                      ).colorScheme.onSurface.withValues(alpha: 0.6),
+                    ),
                     const SizedBox(width: 4),
                     Text(
                       widget.event['venue'],
-                      style: TextStyle(color: Colors.grey[400]),
+                      style: TextStyle(
+                        color: Theme.of(
+                          context,
+                        ).colorScheme.onSurface.withValues(alpha: 0.6),
+                      ),
                     ),
                   ],
                 ),

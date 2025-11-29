@@ -57,9 +57,9 @@ class _StudentCalendarSheetState extends State<StudentCalendarSheet> {
       expand: false,
       builder: (context, scrollController) {
         return Container(
-          decoration: const BoxDecoration(
-            color: UniWeekTheme.surface,
-            borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+          decoration: BoxDecoration(
+            color: Theme.of(context).cardColor,
+            borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
           ),
           child: Column(
             children: [
@@ -79,47 +79,68 @@ class _StudentCalendarSheetState extends State<StudentCalendarSheet> {
                 selectedDayPredicate: (day) => isSameDay(_selectedDay, day),
                 eventLoader: _getEventsForDay,
                 onDaySelected: _onDaySelected,
-                calendarStyle: const CalendarStyle(
-                  todayDecoration: BoxDecoration(
+                calendarStyle: CalendarStyle(
+                  todayDecoration: const BoxDecoration(
                     color: UniWeekTheme.primary,
                     shape: BoxShape.circle,
                   ),
-                  selectedDecoration: BoxDecoration(
+                  selectedDecoration: const BoxDecoration(
                     color: Colors.blue,
                     shape: BoxShape.circle,
                   ),
-                  markerDecoration: BoxDecoration(
+                  markerDecoration: const BoxDecoration(
                     color: Colors.amber,
                     shape: BoxShape.circle,
                   ),
-                  defaultTextStyle: TextStyle(color: Colors.white),
-                  weekendTextStyle: TextStyle(color: Colors.white70),
-                  outsideTextStyle: TextStyle(color: Colors.white24),
+                  defaultTextStyle: TextStyle(
+                    color: Theme.of(context).colorScheme.onSurface,
+                  ),
+                  weekendTextStyle: TextStyle(
+                    color: Theme.of(
+                      context,
+                    ).colorScheme.onSurface.withValues(alpha: 0.7),
+                  ),
+                  outsideTextStyle: TextStyle(
+                    color: Theme.of(
+                      context,
+                    ).colorScheme.onSurface.withValues(alpha: 0.24),
+                  ),
                 ),
-                headerStyle: const HeaderStyle(
+                headerStyle: HeaderStyle(
                   formatButtonVisible: false,
                   titleCentered: true,
-                  titleTextStyle: TextStyle(color: Colors.white, fontSize: 18),
+                  titleTextStyle: TextStyle(
+                    color: Theme.of(context).colorScheme.onSurface,
+                    fontSize: 18,
+                  ),
                   leftChevronIcon: Icon(
                     Icons.chevron_left,
-                    color: Colors.white,
+                    color: Theme.of(context).colorScheme.onSurface,
                   ),
                   rightChevronIcon: Icon(
                     Icons.chevron_right,
-                    color: Colors.white,
+                    color: Theme.of(context).colorScheme.onSurface,
                   ),
                 ),
               ),
-              const Divider(color: Colors.white24),
+              Divider(
+                color: Theme.of(
+                  context,
+                ).colorScheme.onSurface.withValues(alpha: 0.24),
+              ),
               Expanded(
                 child: ValueListenableBuilder<List<Map<String, dynamic>>>(
                   valueListenable: _selectedEvents,
                   builder: (context, value, _) {
                     if (value.isEmpty) {
-                      return const Center(
+                      return Center(
                         child: Text(
                           'No events on this day',
-                          style: TextStyle(color: Colors.white54),
+                          style: TextStyle(
+                            color: Theme.of(
+                              context,
+                            ).colorScheme.onSurface.withValues(alpha: 0.54),
+                          ),
                         ),
                       );
                     }
@@ -132,22 +153,32 @@ class _StudentCalendarSheetState extends State<StudentCalendarSheet> {
                         final date = DateTime.parse(event['date']);
                         return Card(
                           margin: const EdgeInsets.only(bottom: 12),
-                          color: Colors.white10,
+                          color: Theme.of(
+                            context,
+                          ).colorScheme.onSurface.withValues(alpha: 0.05),
                           child: ListTile(
                             title: Text(
                               event['title'],
-                              style: const TextStyle(
-                                color: Colors.white,
+                              style: TextStyle(
+                                color: Theme.of(context).colorScheme.onSurface,
                                 fontWeight: FontWeight.bold,
                               ),
                             ),
                             subtitle: Text(
                               DateFormat('h:mm a').format(date),
-                              style: const TextStyle(color: Colors.white70),
+                              style: TextStyle(
+                                color: Theme.of(
+                                  context,
+                                ).colorScheme.onSurface.withValues(alpha: 0.7),
+                              ),
                             ),
                             trailing: Text(
                               event['venue'],
-                              style: const TextStyle(color: Colors.white54),
+                              style: TextStyle(
+                                color: Theme.of(
+                                  context,
+                                ).colorScheme.onSurface.withValues(alpha: 0.54),
+                              ),
                             ),
                           ),
                         );

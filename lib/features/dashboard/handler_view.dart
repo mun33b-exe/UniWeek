@@ -36,7 +36,7 @@ class _HandlerViewState extends State<HandlerView>
     return Scaffold(
       appBar: AppBar(
         title: const Text('Society Dashboard'),
-        backgroundColor: UniWeekTheme.background,
+        backgroundColor: Theme.of(context).scaffoldBackgroundColor,
         elevation: 0,
         bottom: TabBar(
           controller: _tabController,
@@ -88,7 +88,7 @@ class _MyEventsTab extends StatelessWidget {
     final confirm = await showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
-        backgroundColor: UniWeekTheme.surface,
+        backgroundColor: Theme.of(context).cardColor,
         title: const Text(
           'Delete Event?',
           style: TextStyle(color: Colors.white),

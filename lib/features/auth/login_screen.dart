@@ -94,7 +94,7 @@ class _LoginScreenState extends State<LoginScreen>
               const SizedBox(height: 48),
               Container(
                 decoration: BoxDecoration(
-                  color: UniWeekTheme.surface,
+                  color: Theme.of(context).cardColor,
                   borderRadius: BorderRadius.circular(16),
                 ),
                 child: TabBar(

@@ -5,7 +5,6 @@ import 'package:intl/intl.dart';
 import 'package:lucide_icons/lucide_icons.dart';
 import 'package:provider/provider.dart';
 import 'package:uni_week/core/services/supabase_service.dart';
-import 'package:uni_week/core/theme.dart';
 
 class CreateEventDialog extends StatefulWidget {
   final Map<String, dynamic>? event; // If provided, we are in Edit Mode
@@ -128,7 +127,7 @@ class _CreateEventDialogState extends State<CreateEventDialog> {
   @override
   Widget build(BuildContext context) {
     return AlertDialog(
-      backgroundColor: UniWeekTheme.surface,
+      backgroundColor: Theme.of(context).cardColor,
       title: Text(
         widget.event != null ? 'Edit Event' : 'Create New Event',
         style: const TextStyle(color: Colors.white),
