@@ -193,6 +193,17 @@ class SupabaseService {
         .eq('id', regId);
   }
 
+  Future<void> withdrawRegistration(String eventId) async {
+    final user = _client.auth.currentUser;
+    if (user == null) return;
+
+    await _client
+        .from('registrations')
+        .delete()
+        .eq('event_id', eventId)
+        .eq('student_id', user.id);
+  }
+
   // Analytics
   Future<List<Map<String, dynamic>>> getRegistrationStats() async {
     // This is a simplified way to get stats.

@@ -20,7 +20,8 @@ class _CreateEventDialogState extends State<CreateEventDialog> {
   final _titleController = TextEditingController();
   final _venueController = TextEditingController();
   final _descController = TextEditingController();
-  DateTime _selectedDate = DateTime.now();
+  DateTime? _selectedDate;
+  TimeOfDay? _selectedTime;
   File? _selectedImage;
   String? _existingImageUrl;
   bool _isLoading = false;
@@ -32,7 +33,11 @@ class _CreateEventDialogState extends State<CreateEventDialog> {
       _titleController.text = widget.event!['title'];
       _venueController.text = widget.event!['venue'];
       _descController.text = widget.event!['description'] ?? '';
-      _selectedDate = DateTime.parse(widget.event!['date']);
+
+      final dateTime = DateTime.parse(widget.event!['date']);
+      _selectedDate = dateTime;
+      _selectedTime = TimeOfDay.fromDateTime(dateTime);
+
       _existingImageUrl = widget.event!['image_url'];
     }
   }
@@ -48,6 +53,13 @@ class _CreateEventDialogState extends State<CreateEventDialog> {
   }
 
   Future<void> _submit() async {
+    if (_selectedDate == null || _selectedTime == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Please select both date and time')),
+      );
+      return;
+    }
+
     setState(() => _isLoading = true);
     final supabase = Provider.of<SupabaseService>(context, listen: false);
 
@@ -57,13 +69,21 @@ class _CreateEventDialogState extends State<CreateEventDialog> {
         imageUrl = await supabase.uploadEventBanner(_selectedImage!);
       }
 
+      final fullDateTime = DateTime(
+        _selectedDate!.year,
+        _selectedDate!.month,
+        _selectedDate!.day,
+        _selectedTime!.hour,
+        _selectedTime!.minute,
+      );
+
       if (widget.event != null) {
         // Update
         await supabase.updateEvent(
           eventId: widget.event!['id'],
           title: _titleController.text,
           description: _descController.text,
-          date: _selectedDate,
+          date: fullDateTime,
           venue: _venueController.text,
           imageUrl: imageUrl,
         );
@@ -75,7 +95,7 @@ class _CreateEventDialogState extends State<CreateEventDialog> {
         await supabase.createEvent(
           title: _titleController.text,
           description: _descController.text,
-          date: _selectedDate,
+          date: fullDateTime,
           venue: _venueController.text,
           societyType: society,
           imageUrl: imageUrl,
@@ -173,27 +193,62 @@ class _CreateEventDialogState extends State<CreateEventDialog> {
               maxLines: 3,
             ),
             const SizedBox(height: 16),
-            ListTile(
-              title: const Text('Date', style: TextStyle(color: Colors.white)),
-              subtitle: Text(
-                DateFormat('MMM d, y').format(_selectedDate),
-                style: TextStyle(color: Colors.grey[400]),
-              ),
-              trailing: const Icon(
-                LucideIcons.calendar,
-                color: UniWeekTheme.primary,
-              ),
-              onTap: () async {
-                final date = await showDatePicker(
-                  context: context,
-                  initialDate: _selectedDate,
-                  firstDate: DateTime.now(),
-                  lastDate: DateTime.now().add(const Duration(days: 365)),
-                );
-                if (date != null) {
-                  setState(() => _selectedDate = date);
-                }
-              },
+            Row(
+              children: [
+                Expanded(
+                  child: InkWell(
+                    onTap: () async {
+                      final date = await showDatePicker(
+                        context: context,
+                        initialDate: _selectedDate ?? DateTime.now(),
+                        firstDate: DateTime.now(),
+                        lastDate: DateTime.now().add(const Duration(days: 365)),
+                      );
+                      if (date != null) {
+                        setState(() => _selectedDate = date);
+                      }
+                    },
+                    child: InputDecorator(
+                      decoration: const InputDecoration(
+                        labelText: 'Date',
+                        prefixIcon: Icon(LucideIcons.calendar),
+                      ),
+                      child: Text(
+                        _selectedDate != null
+                            ? DateFormat('MMM d, y').format(_selectedDate!)
+                            : 'Select Date',
+                        style: const TextStyle(color: Colors.white),
+                      ),
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 16),
+                Expanded(
+                  child: InkWell(
+                    onTap: () async {
+                      final time = await showTimePicker(
+                        context: context,
+                        initialTime: _selectedTime ?? TimeOfDay.now(),
+                      );
+                      if (time != null) {
+                        setState(() => _selectedTime = time);
+                      }
+                    },
+                    child: InputDecorator(
+                      decoration: const InputDecoration(
+                        labelText: 'Time',
+                        prefixIcon: Icon(LucideIcons.clock),
+                      ),
+                      child: Text(
+                        _selectedTime != null
+                            ? _selectedTime!.format(context)
+                            : 'Select Time',
+                        style: const TextStyle(color: Colors.white),
+                      ),
+                    ),
+                  ),
+                ),
+              ],
             ),
           ],
         ),

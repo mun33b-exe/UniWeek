@@ -272,6 +272,60 @@ class _EventCardState extends State<_EventCard> {
     }
   }
 
+  Future<void> _withdrawRegistration() async {
+    setState(() => _isLoading = true);
+    final supabase = Provider.of<SupabaseService>(context, listen: false);
+    try {
+      await supabase.withdrawRegistration(widget.event['id']);
+      if (mounted) {
+        setState(() {
+          _status = null;
+        });
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text('Error: $e')));
+      }
+    } finally {
+      if (mounted) {
+        setState(() => _isLoading = false);
+      }
+    }
+  }
+
+  Future<void> _confirmWithdraw() async {
+    final confirm = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        backgroundColor: UniWeekTheme.surface,
+        title: const Text(
+          'Withdraw Registration?',
+          style: TextStyle(color: Colors.white),
+        ),
+        content: const Text(
+          'Are you sure you want to withdraw from this event?',
+          style: TextStyle(color: Colors.white70),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text('Cancel'),
+          ),
+          TextButton(
+            onPressed: () => Navigator.pop(context, true),
+            child: const Text('Withdraw', style: TextStyle(color: Colors.red)),
+          ),
+        ],
+      ),
+    );
+
+    if (confirm == true) {
+      _withdrawRegistration();
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final date = DateTime.parse(widget.event['date']);
@@ -363,24 +417,29 @@ class _EventCardState extends State<_EventCard> {
                 SizedBox(
                   width: double.infinity,
                   child: ElevatedButton(
-                    onPressed:
-                        _isLoading ||
-                            (_status == 'accepted' || _status == 'pending')
+                    onPressed: _isLoading
                         ? null
-                        : _toggleRegistration,
+                        : _status == null
+                        ? _toggleRegistration
+                        : _status == 'rejected'
+                        ? _toggleRegistration // Retry
+                        : _status == 'pending'
+                        ? _withdrawRegistration // Cancel Request
+                        : _confirmWithdraw, // Withdraw Accepted
                     style: ElevatedButton.styleFrom(
                       backgroundColor: _status == 'accepted'
-                          ? Colors.green
+                          ? Colors.transparent
                           : _status == 'rejected'
                           ? Colors.red
                           : _status == 'pending'
-                          ? Colors.orange
+                          ? Colors.transparent
                           : UniWeekTheme.primary,
-                      disabledBackgroundColor: _status == 'accepted'
-                          ? Colors.green.withValues(alpha: 0.5)
-                          : _status == 'pending'
-                          ? Colors.orange.withValues(alpha: 0.5)
+                      side: _status == 'accepted' || _status == 'pending'
+                          ? const BorderSide(color: Colors.red)
                           : null,
+                      disabledBackgroundColor: Colors.grey.withValues(
+                        alpha: 0.3,
+                      ),
                     ),
                     child: _isLoading
                         ? const SizedBox(
@@ -388,14 +447,35 @@ class _EventCardState extends State<_EventCard> {
                             width: 20,
                             child: CircularProgressIndicator(strokeWidth: 2),
                           )
-                        : Text(
-                            _status == 'accepted'
-                                ? 'Registered'
-                                : _status == 'pending'
-                                ? 'Request Sent'
-                                : _status == 'rejected'
-                                ? 'Rejected (Try Again)'
-                                : 'Request Registration',
+                        : Row(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              if (_status == 'pending' || _status == 'accepted')
+                                const Padding(
+                                  padding: EdgeInsets.only(right: 8),
+                                  child: Icon(
+                                    LucideIcons.trash2,
+                                    size: 16,
+                                    color: Colors.red,
+                                  ),
+                                ),
+                              Text(
+                                _status == 'accepted'
+                                    ? 'Withdraw / Cancel'
+                                    : _status == 'pending'
+                                    ? 'Withdraw Request'
+                                    : _status == 'rejected'
+                                    ? 'Rejected (Tap to Retry)'
+                                    : 'Register',
+                                style: TextStyle(
+                                  color:
+                                      _status == 'accepted' ||
+                                          _status == 'pending'
+                                      ? Colors.red
+                                      : Colors.white,
+                                ),
+                              ),
+                            ],
                           ),
                   ),
                 ),
